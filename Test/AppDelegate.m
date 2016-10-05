@@ -7,18 +7,117 @@
 //
 
 #import "AppDelegate.h"
+#import "LoginViewController.h"
+#import "Constants.h"
+#import "MapDisplayViewController.h"
+#import "CameraViewController.h"
+#import "GalleryViewController.h"
+#import "InfoViewController.h"
 
-@interface AppDelegate ()
+
+@interface AppDelegate () <LoginDelegate>{
+    
+    UITabBarController *tabBarController;
+}
+
+
 
 @end
+
+@import GoogleMaps;
 
 @implementation AppDelegate
 
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
+      [Utility setUpGoogleMapConfiguration];
+      [self checkUserStatus];
     return YES;
 }
+
+-(void)checkUserStatus{
+    
+    BOOL userExists = [self loadUserObjectWithKey:@"USER"];
+    if (userExists) [self loadHomePage];
+    else            [self showLoginScreen];
+    
+}
+/*!.........Check Availability of User !...........*/
+
+- (BOOL )loadUserObjectWithKey:(NSString *)key {
+    BOOL isUserExists = false;
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    NSData *encodedObject = [defaults objectForKey:key];
+    if (encodedObject) {
+        User *object = [NSKeyedUnarchiver unarchiveObjectWithData:encodedObject];
+        if (object)isUserExists = true;
+        [self createUserObject:object];
+        
+    }
+    return isUserExists;
+}
+
+-(void)createUserObject:(User*)user{
+    
+    // Creating singleton user object with Decoded data from NSUserDefaults
+    
+    [User sharedManager].email = user.email;
+    
+}
+
+-(void)showLoginScreen{
+    
+    // Show login page for a  user.
+    
+    LoginViewController *loginPage =  [UIStoryboard get_ViewControllerFromStoryboardWithStoryBoardName:MainStoryBoard Identifier:StoryBoardIdentifierForLoginPage];
+    loginPage.delegate = self;
+    UINavigationController *logginVC = [[UINavigationController alloc] initWithRootViewController:loginPage];
+    logginVC.navigationBarHidden = true;
+    self.window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
+    self.window.rootViewController = logginVC;
+    [self.window makeKeyAndVisible];
+    
+    
+}
+
+// Success call back from login after successful attempt
+
+-(void)loadHomePage{
+    
+    UINavigationController *navForMap = [[UINavigationController alloc] init];
+    MapDisplayViewController *mapView =  [UIStoryboard get_ViewControllerFromStoryboardWithStoryBoardName:MainStoryBoard Identifier:StoryBoardIdentifierMap];
+    navForMap.viewControllers = [NSArray arrayWithObjects:mapView, nil];
+    navForMap.navigationBarHidden = true;
+    
+    UINavigationController *navForCamera = [[UINavigationController alloc] init];
+    CameraViewController *cameraView =  [UIStoryboard get_ViewControllerFromStoryboardWithStoryBoardName:MainStoryBoard Identifier:StoryBoardIdentifierCamera];
+    navForCamera.viewControllers = [NSArray arrayWithObjects:cameraView, nil];
+    navForCamera.navigationBarHidden = true;
+    
+    UINavigationController *navForGallery = [[UINavigationController alloc] init];
+    GalleryViewController *galleryView =  [UIStoryboard get_ViewControllerFromStoryboardWithStoryBoardName:MainStoryBoard Identifier:StoryBoardIdentifierGallery];
+    navForGallery.viewControllers = [NSArray arrayWithObjects:galleryView, nil];
+    navForGallery.navigationBarHidden = true;
+    
+    UINavigationController *navForInfo = [[UINavigationController alloc] init];
+    InfoViewController *infoView =  [UIStoryboard get_ViewControllerFromStoryboardWithStoryBoardName:MainStoryBoard Identifier:StoryBoardIdentifierInfoPage];
+    navForInfo.viewControllers = [NSArray arrayWithObjects:infoView, nil];
+    navForInfo.navigationBarHidden = true;
+    
+    tabBarController = [[UITabBarController alloc] init];
+    tabBarController.viewControllers = [NSArray arrayWithObjects:navForMap,navForCamera,navForGallery,navForInfo,nil];
+    [[tabBarController.tabBar.items objectAtIndex:0] setTitle:@"HOME"];
+    [[tabBarController.tabBar.items objectAtIndex:1] setTitle:@"CAMERA"];
+    [[tabBarController.tabBar.items objectAtIndex:2] setTitle:@"GALLERY"];
+    [[tabBarController.tabBar.items objectAtIndex:3] setTitle:@"INFO"];
+    self.window.rootViewController = tabBarController;
+    [self.window makeKeyAndVisible];
+
+}
+
+
+
 
 - (void)applicationWillResignActive:(UIApplication *)application {
     // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
